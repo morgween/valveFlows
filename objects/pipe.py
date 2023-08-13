@@ -1,6 +1,6 @@
 import math
 import configparser
-import RPi.GPIO as GPIO
+# import RPi.GPIO as GPIO
 
 
 class Pipe:
@@ -11,9 +11,11 @@ class Pipe:
         self.valve_number = valve_number
         self.mass_flow = 0
         self.is_Active = False
+        self.is_open = False
         # save the corresponding pins for each valve
         self.valve_pin = [17, 27, 23, 24][self.valve_number-1]
-        GPIO.setup(self.valve_pin, GPIO.OUT)
+        # GPIO.setup(self.valve_pin, GPIO.OUT)
+        print("setup")
 
     def get_valve_num(self) -> int:
         return self.valve_number
@@ -23,13 +25,23 @@ class Pipe:
         Opens the pipe valve by sending a HIGH signal to the valve pin.
         """
         if (self.is_Active != False):
-            GPIO.output(self.valve_pin, GPIO.HIGH)
+            self.is_open = True
+            # GPIO.output(self.valve_pin, GPIO.HIGH)
+            print("open")
 
     def close_pipe(self) -> None:
         """
         Closes the pipe valve by sending a LOW signal to the valve pin.
         """
-        GPIO.output(self.valve_pin, GPIO.LOW)
+        # GPIO.output(self.valve_pin, GPIO.LOW)
+        self.is_open = False
+        print("close")
+
+    def is_open(self) -> bool:
+        """
+        Returns True if the pipe valve is open, False otherwise.
+        """
+        return self.is_open
 
     def deactivate(self) -> None:
         """

@@ -3,3 +3,6 @@ bin/
 lib/
 .git
 pyvenv.cfg
+**/__pycache__/
+
+```

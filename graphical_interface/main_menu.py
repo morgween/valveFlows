@@ -5,44 +5,8 @@ from tkinter import messagebox
 from apscheduler.schedulers.background import BackgroundScheduler
 from graphical_interface.calibration_window import Calibration_window
 from graphical_interface.calibration_window import on_validate
+from graphical_interface.scroller import Scroller
 from objects.pipe import Pipe
-
-
-class ScrollersWidget(tk.Frame):
-    def __init__(self, root) -> None:
-        super().__init__(root)
-        self.create_widget()
-        self.pack(fill='y')
-
-    def create_widget(self) -> None:
-        self.hour_frame = tk.Frame(self, bg='white')
-        self.min_frame = tk.Frame(self, bg='white')
-        self.hour_scroller = tk.Scale(self.hour_frame, from_=00,
-                                      to=23, length=250, orient='horizontal')
-        self.min_scroller = tk.Scale(self.min_frame, from_=00,
-                                     to=59, length=250, orient='horizontal')
-        self.hour_label = tk.Label(self.hour_frame, text='Hour', bg='white')
-        self.min_label = tk.Label(self.min_frame, text='Minute', bg='white')
-        self.hour_scroller.pack(side='left')
-        self.hour_label.pack(side='left')
-        self.min_scroller.pack(side='left')
-        self.min_label.pack(side='left')
-        self.hour_frame.pack(side='top')
-        self.min_frame.pack(side='top')
-
-    def get_time_str(self) -> str:
-        hour = self.hour_scroller.get()
-        minute = self.min_scroller.get()
-        if len(hour) == 1:
-            hour = '0'+hour
-        if len(minute) == 1:
-            minute = '0'+minute
-        return hour+':'+minute
-
-    def get_time_int(self) -> int:
-        hour = self.hour_scroller.get()
-        minute = self.min_scroller.get()
-        return int(hour), int(minute)
 
 
 class MenuWindow:
@@ -57,6 +21,7 @@ class MenuWindow:
         self.header_frame = self.create_header_frame()
         self.section_frames = [self.create_section_frame(
             column) for column in range(1, 5)]
+        self.time_frames_list = []
 
     def destroy_widgets(self) -> None:
         for section in self.section_frames:
@@ -76,30 +41,225 @@ class MenuWindow:
             self.pipes[pipe - 1].mass_flow = 0
             self.pipes[pipe - 1].openning_time = 0
             self.pipes[pipe - 1].is_Active = False
-            config['Callibration'][f'valve{pipe}'] = '0'
-        config['Callibration']['is_calibrated'] = 'False'
+            config['Calibration'][f'valve{pipe}'] = '0'
+        config['Calibration']['is_calibrated'] = 'False'
         with open('configuration/config.ini', 'w') as configfile:
             config.write(configfile)
         self.update_header_frame()
 
-    def add_button_clicked(self) -> None:
-        pass
-
     def on_check_calibration_clicked(self) -> None:
-        pass
+        config = configparser.ConfigParser()
+        config.read('configuration/config.ini')
+        if (config['Calibration']['is_calibrated'] == 'True'):
+            calibration_check_window = tk.Toplevel(self.root)
+            calibration_check_window.geometry('500x230')
+            calibration_check_window.title('Calibration check')
+            calibration_check_window.resizable(False, False)
+            calibration_check_window.configure(background='white')
+            calibration_check_window.grab_set()
+            calibration_check_window.focus_set()
+            calibration_check_window.transient(self.root)
+            calibration_check_window.attributes("-topmost", True)
+            calibration_check_window.protocol(
+                "WM_DELETE_WINDOW", lambda: calibration_check_window.destroy())
+            text_label = tk.Label(
+                calibration_check_window, text="The device is calibrated, mass flows are:", bg='white', font=("Helvetica", 24))
+            pipe1_label = tk.Label(
+                calibration_check_window, text=f"Pipe 1 : {config['Calibration']['valve1']}", bg='white', font=("Helvetica", 32))
+            pipe2_label = tk.Label(
+                calibration_check_window, text=f"Pipe 2 : {config['Calibration']['valve2']}", bg='white', font=("Helvetica", 32))
+            pipe3_label = tk.Label(
+                calibration_check_window, text=f"Pipe 3 : {config['Calibration']['valve3']}", bg='white', font=("Helvetica", 32))
+            pipe4_label = tk.Label(
+                calibration_check_window, text=f"Pipe 4 : {config['Calibration']['valve4']}", bg='white', font=("Helvetica", 32))
+            text_label.pack()
+            pipe1_label.pack()
+            pipe2_label.pack()
+            pipe3_label.pack()
+            pipe4_label.pack()
+        else:
+            messagebox.showinfo(
+                "Calibration", "The device is not calibrated.")
 
-    def on_off_clicked(self) -> None:
-        pass
+    def create_header_frame(self):
+        self.header_frame = tk.Frame(self.root, height=120, bg='white')
+        self.header_frame.pack(fill='x')
 
-    def create_header_frame(self) -> tk.Frame:
-        pass
+        self.left_frame = tk.Frame(self.header_frame, bg='white')
+        self.left_frame.pack(side='left')
+        config = configparser.ConfigParser()
+        config.read('configuration/config.ini')
+        if (config['Calibration']['is_calibrated'] == 'False'):
+            calibrate_button_state = tk.NORMAL
+        else:
+            calibrate_button_state = tk.DISABLED
+        self.calibrate_button = tk.Button(self.header_frame, text='Calibrate', command=self.on_calibration_clicked,
+                                          background='#8aecff', width=12, height=3, state=calibrate_button_state)
+
+        self.calibrate_button.pack(side='right', padx=10)
+
+        check_calibration_button = tk.Button(self.header_frame, text='Check calibration', command=self.on_check_calibration_clicked,
+                                             background='#8aecff', width=12, height=3)
+        check_calibration_button.pack(side='right', padx=10)
+
+        self.reset_all_button = tk.Button(self.header_frame, text='Reset all', command=self.on_reset_button_clicked,
+                                          background='#8aecff', width=12, height=3)
+        self.reset_all_button.pack(side='right', padx=10)
+        self.update_header_frame()
+        return self.header_frame
 
     def update_header_frame(self) -> None:
-        pass
+        config = configparser.ConfigParser()
+        config.read('configuration/config.ini')
+        is_calibrated = config['Calibration']['is_calibrated']
+        label_text1, label_text2 = 'Calibrated', 'Not calibrated'
+        if is_calibrated == 'False':
+            self.calibrate_button.config(state=tk.NORMAL)
+            self.reset_all_button.config(state=tk.DISABLED)
+            color1, color2 = 'white', 'blue'
+        else:
+            self.calibrate_button.config(state=tk.DISABLED)
+            self.reset_all_button.config(state=tk.NORMAL)
+            color1, color2 = 'blue', 'white'
+        if hasattr(self, 'circle1'):
+            self.circle1.itemconfig(1, fill=color1)
+        else:
+            self.circle1 = tk.Canvas(
+                self.left_frame, width=40, height=40, bg='white', highlightthickness=0)
+            self.circle1.create_oval(
+                5, 5, 35, 35, outline='black', fill=color1)
+            self.circle1.grid(row=0, column=0, padx=5, pady=5)
+        if hasattr(self, 'circle2'):
+            self.circle2.itemconfig(1, fill=color2)
+        else:
+            self.circle2 = tk.Canvas(
+                self.left_frame, width=40, height=40, bg='white', highlightthickness=0)
+            self.circle2.create_oval(
+                5, 5, 35, 35, outline='black', fill=color2)
+            self.circle2.grid(row=1, column=0, padx=5, pady=5)
+        if hasattr(self, 'label1'):
+            self.label1.config(text=label_text1)
+        else:
+            self.label1 = tk.Label(
+                self.left_frame, text=label_text1, bg='white', fg='black')
+            self.label1.grid(row=0, column=1, padx=5, pady=5)
 
-    def create_section_frame(self) -> tk.Frame:
+        if hasattr(self, 'label2'):
+            self.label2.config(text=label_text2)
+        else:
+            self.label2 = tk.Label(
+                self.left_frame, text=label_text2, bg='white', fg='black')
+            self.label2.grid(row=1, column=1, padx=5, pady=5)
+
+    def task(self, pipe: int, water_amount: float):
+        if not self.pipes[pipe-1].is_Active:
+            return
+        self.pipes[pipe-1].open_pipe()
+        time.sleep(self.pipes[pipe-1].calculate_time(water_amount))
+        self.pipes[pipe-1].close_pipe()
+
+    def add_button_clicked(self, pipe_number: int, time_frames_fr: tk.Frame) -> None:
+        def on_apply_clicked():
+            def remove_label(label, button, frame):
+                label.destroy()
+                button.destroy()
+                frame.destroy()
+                self.root.update()
+            amount_of_water = float(self.entry_field.get())
+            time_sc = time_widget.get_time_str()
+            hour, min = time_widget.get_time_int()
+            time_frame = tk.Frame(time_frames_fr, bg='white')
+            time_label = tk.Label(
+                time_frame, text=f'{time_sc}, {self.entry_field.get()}', bg='white')
+            time_label.pack(side='left', pady=5)
+            remove_button = tk.Button(time_frame, text="X", command=lambda: remove_label(
+                time_label, remove_button, time_frame))
+            remove_button.pack(side='left', pady=5)
+            time_frame.pack(side='top')
+            self.scheduler.add_job(self.task, 'cron', args=[
+                                   pipe_number, amount_of_water], hour=hour, minute=min)
+            time_window.destroy()
+            self.root.update()
+
         validate_num = self.root.registrer(on_validate)
-        pass
+        config = configparser.ConfigParser()
+        config.read('configuration/config.ini')
+        if config['Calibration'].getboolean('is_calibrated'):
+            messagebox.showinfo(
+                "Calibration", "The device is not calibrated.")
+            return
+        time_window = tk.Tk()
+        time_window.geometry('400x300')
+        label = tk.Label(time_window, text='Choose the time (HH:MM): ')
+        label.pack(side='top')
+        time_widget = Scroller(time_window)
+        time_widget.pack(side='top')
+        water_amount_label = tk.Label(
+            time_window, text="Amount of Water [ml]", bg='white')
+        water_amount_label.pack()
+        self.entry_field = tk.Entry(
+            time_window, validate="key", validatecommand=(validate_num, "%P"))
+        self.entry_field.pack(side='top', pady=5)
+        apply_button = tk.Button(
+            time_window, text="Apply", command=on_apply_clicked)
+        apply_button.pack(side='bottom')
+        time_window.mainloop()
+
+    def create_section_frame(self, column):
+        def on_off_button_clicked(pipe):
+            self.pipes[pipe-1].is_Active = not self.pipes[pipe-1].is_Active
+            if not self.pipes[pipe-1].is_Active:
+                section_frame.config(bg='#adb5bd')
+                on_off_button.config(bg='#adb5bd')
+                on_off_button.config(fg='#343a40')
+                add_button.config(state='disabled')
+                add_button.config(bg='#adb5bd')
+                add_button.config(fg='#343a40')
+            else:
+                section_frame.config(bg='white')
+                on_off_button.config(state='normal')
+                on_off_button.config(bg='white')
+                on_off_button.config(fg='black')
+                add_button.config(state='normal')
+                add_button.config(bg='white')
+                add_button.config(fg='black')
+
+        section_frame = tk.Frame(
+            self.root, borderwidth=1, relief='solid', bg='white')
+        section_frame.pack(fill='both', expand=True, side='left')
+        self.root.grid_columnconfigure(column, weight=1)
+        time_frames_frame = tk.Frame(section_frame, bg='white')
+        valve_label = tk.Label(
+            section_frame, text=f"VALVE №{column}", bg='white')
+        valve_label.pack(side='top', pady=5)
+
+        add_button = tk.Button(section_frame, bg='white', text='+', font=("Helvetica", 20),
+                               borderwidth=0, highlightthickness=0, command=lambda: self.add_button_clicked(column, time_frames_frame))
+        add_button.pack(side='top', pady=5)
+        on_off_button = tk.Button(
+            section_frame, text="OFF/ON", bg='white', command=lambda: on_off_button_clicked(column))
+        on_off_button.pack(side='bottom')
+        status_frame = tk.Frame(section_frame, bg='white')
+        circle = tk.Canvas(status_frame, width=40,
+                           height=40, highlightthickness=0, bg='white')
+        if (self.pipes[column-1].is_open):
+            circle.create_oval(5, 5, 35, 35, outline='black', fill='green')
+            status_label = tk.Label(status_frame, text="Opened", bg='white')
+        else:
+            circle.create_oval(5, 5, 35, 35, outline='black', fill='red')
+            status_label = tk.Label(status_frame, text="Closed", bg='white')
+        circle.pack(side='left')
+        status_label.pack(side='left')
+        status_frame.pack(side='bottom')
+        if not self.pipes[column-1].is_Active:
+            section_frame.config(bg='#adb5bd')
+            on_off_button.config(bg='#adb5bd')
+            on_off_button.config(fg='#343a40')
+            add_button.config(state='disabled')
+            add_button.config(bg='#adb5bd')
+            add_button.config(fg='#343a40')
+
+        time_frames_frame.pack(side='top')
 
     def run(self):
         self.root.mainloop()
