@@ -2,7 +2,7 @@ import tkinter as tk
 import time
 import configparser
 from tkinter import messagebox
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.background import Background_scheduler
 from graphical_interface.calibration_window import Calibration_window
 from graphical_interface.calibration_window import on_validate
 from graphical_interface.scroller import Scroller
@@ -11,30 +11,25 @@ from objects.pipe import Pipe
 
 class MenuWindow:
     def __init__(self, pipes: list[Pipe]) -> None:
-        self.root = tk.Tk()
-        self.root.geometry('800x480')
-        self.root.title('Menu')
-        self.root.configure(bg='white')
+        self._root = tk.Tk()
+        self._root.geometry('800x480')
+        self._root.title('Menu')
+        self._root.configure(bg='white')
         self.pipes = pipes
-        self.scheduler = BackgroundScheduler()
-        self.scheduler.start()
+        self._scheduler = Background_scheduler()
+        self._scheduler.start()
         self.header_frame = self.create_header_frame()
         self.section_frames = [self.create_section_frame(
             column) for column in range(1, 5)]
         self.time_frames_list = []
 
-    def destroy_widgets(self) -> None:
-        for section in self.section_frames:
-            section.destroy()
-        self.header_frame.destroy()
-
-    def on_calibration_clicked(self) -> None:
+    def _on_calibration_clicked(self) -> None:
         calibration_window = Calibration_window(self.pipes, self)
         calibration_window.run()
-        self.root.wait_window(calibration_window.window)
+        self._root.wait_window(calibration_window.window)
         self.update_header_frame()
 
-    def on_reset_button_clicked(self) -> None:
+    def _on_reset_button_clicked(self) -> None:
         config = configparser.ConfigParser()
         config.read('configuration/config.ini')
         for pipe in range(1, 5):
@@ -47,18 +42,18 @@ class MenuWindow:
             config.write(configfile)
         self.update_header_frame()
 
-    def on_check_calibration_clicked(self) -> None:
+    def _on_check_calibration_clicked(self) -> None:
         config = configparser.ConfigParser()
         config.read('configuration/config.ini')
         if (config['Calibration']['is_calibrated'] == 'True'):
-            calibration_check_window = tk.Toplevel(self.root)
+            calibration_check_window = tk.Toplevel(self._root)
             calibration_check_window.geometry('500x230')
             calibration_check_window.title('Calibration check')
             calibration_check_window.resizable(False, False)
             calibration_check_window.configure(background='white')
             calibration_check_window.grab_set()
             calibration_check_window.focus_set()
-            calibration_check_window.transient(self.root)
+            calibration_check_window.transient(self._root)
             calibration_check_window.attributes("-topmost", True)
             calibration_check_window.protocol(
                 "WM_DELETE_WINDOW", lambda: calibration_check_window.destroy())
@@ -82,7 +77,7 @@ class MenuWindow:
                 "Calibration", "The device is not calibrated.")
 
     def create_header_frame(self):
-        self.header_frame = tk.Frame(self.root, height=120, bg='white')
+        self.header_frame = tk.Frame(self._root, height=120, bg='white')
         self.header_frame.pack(fill='x')
 
         self.left_frame = tk.Frame(self.header_frame, bg='white')
@@ -93,16 +88,16 @@ class MenuWindow:
             calibrate_button_state = tk.NORMAL
         else:
             calibrate_button_state = tk.DISABLED
-        self.calibrate_button = tk.Button(self.header_frame, text='Calibrate', command=self.on_calibration_clicked,
+        self.calibrate_button = tk.Button(self.header_frame, text='Calibrate', command=self._on_calibration_clicked,
                                           background='#8aecff', width=12, height=3, state=calibrate_button_state)
 
         self.calibrate_button.pack(side='right', padx=10)
 
-        check_calibration_button = tk.Button(self.header_frame, text='Check calibration', command=self.on_check_calibration_clicked,
+        check_calibration_button = tk.Button(self.header_frame, text='Check calibration', command=self._on_check_calibration_clicked,
                                              background='#8aecff', width=12, height=3)
         check_calibration_button.pack(side='right', padx=10)
 
-        self.reset_all_button = tk.Button(self.header_frame, text='Reset all', command=self.on_reset_button_clicked,
+        self.reset_all_button = tk.Button(self.header_frame, text='Reset all', command=self._on_reset_button_clicked,
                                           background='#8aecff', width=12, height=3)
         self.reset_all_button.pack(side='right', padx=10)
         self.update_header_frame()
@@ -164,7 +159,7 @@ class MenuWindow:
                 label.destroy()
                 button.destroy()
                 frame.destroy()
-                self.root.update()
+                self._root.update()
             amount_of_water = float(self.entry_field.get())
             time_sc = time_widget.get_time_str()
             hour, min = time_widget.get_time_int()
@@ -176,12 +171,12 @@ class MenuWindow:
                 time_label, remove_button, time_frame))
             remove_button.pack(side='left', pady=5)
             time_frame.pack(side='top')
-            self.scheduler.add_job(self.task, 'cron', args=[
+            self._scheduler.add_job(self.task, 'cron', args=[
                                    pipe_number, amount_of_water], hour=hour, minute=min)
             time_window.destroy()
-            self.root.update()
+            self._root.update()
 
-        validate_num = self.root.registrer(on_validate)
+        validate_num = self._root.registrer(on_validate)
         config = configparser.ConfigParser()
         config.read('configuration/config.ini')
         if config['Calibration'].getboolean('is_calibrated'):
@@ -225,9 +220,9 @@ class MenuWindow:
                 add_button.config(fg='black')
 
         section_frame = tk.Frame(
-            self.root, borderwidth=1, relief='solid', bg='white')
+            self._root, borderwidth=1, relief='solid', bg='white')
         section_frame.pack(fill='both', expand=True, side='left')
-        self.root.grid_columnconfigure(column, weight=1)
+        self._root.grid_columnconfigure(column, weight=1)
         time_frames_frame = tk.Frame(section_frame, bg='white')
         valve_label = tk.Label(
             section_frame, text=f"VALVE №{column}", bg='white')
@@ -262,4 +257,4 @@ class MenuWindow:
         time_frames_frame.pack(side='top')
 
     def run(self):
-        self.root.mainloop()
+        self._root.mainloop()
