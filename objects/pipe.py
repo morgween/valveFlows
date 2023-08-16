@@ -84,16 +84,16 @@ class Pipe:
             3: [0.85442, 9],
             4: [1.05442, 9.75],
         }
-
+        print(type(pressure))
         x = ((pressure * math.pow(10, 4))/1000 + 0.25442)*19.62
-        y = (0.02476 * dict_valves[self.pipe_num][0] /
-             0.013868) + dict_valves[self.pipe_num][1]
+        y = (0.02476 * dict_valves[self.valve_number][0] /
+             0.013868) + dict_valves[self.valve_number][1]
         v = math.pow(x/y, 0.5)
         q = math.pow(0.013868/2, 2) * math.pi * v
         self.mass_flow = q*1000
         config = configparser.ConfigParser()
         config.read('configuration/config.ini')
-        config['Callibration'][f'valve{self.pipe_num}'] = str(self.mass_flow)
+        config['Calibration'][f'valve{self.valve_number}'] = str(self.mass_flow)
         with open('configuration/config.ini', 'w') as configfile:
             config.write(configfile)
 

@@ -2,12 +2,11 @@ import tkinter as tk
 import time
 import configparser
 from tkinter import messagebox
-from apscheduler.schedulers.background import Background_scheduler
 from graphical_interface.calibration_window import Calibration_window
 from graphical_interface.calibration_window import on_validate
 from graphical_interface.scroller import Scroller
 from objects.pipe import Pipe
-
+from apscheduler.schedulers.background import BackgroundScheduler
 
 class MenuWindow:
     def __init__(self, pipes: list[Pipe]) -> None:
@@ -16,7 +15,7 @@ class MenuWindow:
         self._root.title('Menu')
         self._root.configure(bg='white')
         self.pipes = pipes
-        self._scheduler = Background_scheduler()
+        self._scheduler = BackgroundScheduler()
         self._scheduler.start()
         self.header_frame = self.create_header_frame()
         self.section_frames = [self.create_section_frame(
@@ -26,7 +25,7 @@ class MenuWindow:
     def _on_calibration_clicked(self) -> None:
         calibration_window = Calibration_window(self.pipes, self)
         calibration_window.run()
-        self._root.wait_window(calibration_window.window)
+        self._root.wait_window(calibration_window.menu_window)
         self.update_header_frame()
 
     def _on_reset_button_clicked(self) -> None:
@@ -45,7 +44,7 @@ class MenuWindow:
     def _on_check_calibration_clicked(self) -> None:
         config = configparser.ConfigParser()
         config.read('configuration/config.ini')
-        if (config['Calibration']['is_calibrated'] == 'True'):
+        if config['Calibration'].getboolean('is_calibrated'):
             calibration_check_window = tk.Toplevel(self._root)
             calibration_check_window.geometry('500x230')
             calibration_check_window.title('Calibration check')
@@ -176,10 +175,10 @@ class MenuWindow:
             time_window.destroy()
             self._root.update()
 
-        validate_num = self._root.registrer(on_validate)
+        validate_num = self._root.register(on_validate)
         config = configparser.ConfigParser()
         config.read('configuration/config.ini')
-        if config['Calibration'].getboolean('is_calibrated'):
+        if not config['Calibration'].getboolean('is_calibrated'):
             messagebox.showinfo(
                 "Calibration", "The device is not calibrated.")
             return
